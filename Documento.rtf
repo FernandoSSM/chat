@@ -1,0 +1,184 @@
+{\rtf1\ansi\ansicpg1252\deff0\deflang13322{\fonttbl{\f0\fnil\fcharset0 Calibri;}{\f1\fnil Consolas;}{\f2\fnil\fcharset0 Consolas;}}
+{\colortbl ;\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red163\green21\blue21;\red43\green145\blue175;}
+{\*\generator Msftedit 5.41.21.2510;}\viewkind4\uc1\pard\sa200\sl276\slmult1\lang10\f0\fs22 CONEXION AL SERVIDOR\par
+\cf1\highlight2\f1\fs19 private\cf3  \cf1 void\cf3  EstablishConnection()\par
+\tab\tab\{\par
+\tab\tab\tab statusBar1.Text = \cf4 "Conectando a Servidor"\cf3 ;\par
+\tab\tab\tab\cf1 try\cf3  \par
+\tab\tab\tab\{\par
+\tab\tab\tab\tab clientsocket = \cf1 new\cf3  \cf5 TcpClient\cf3 (serveraddress,serverport);\par
+\tab\tab\tab\tab ns = clientsocket.GetStream();\par
+\tab\tab\tab\tab sr = \cf1 new\cf3  \cf5 StreamReader\cf3 (ns);\par
+\tab\tab\tab\tab connected = \cf1 true\cf3 ;\par
+\tab\tab\tab\}\par
+\tab\tab\tab\cf1 catch\cf3  (\cf5 Exception\cf3  e)\par
+\tab\tab\tab\{\par
+\tab\tab\tab\tab\cf5 MessageBox\cf3 .Show(\cf4 "No es posible la coneccion con el Servidor"\cf3 ,\cf4 "Error"\cf3 ,\par
+\tab\tab\tab\tab\tab\cf5 MessageBoxButtons\cf3 .OK, \cf5 MessageBoxIcon\cf3 .Exclamation);\par
+\tab\tab\tab\tab statusBar1.Text = \cf4 "Desconectado"\cf3 ;\par
+\tab\tab\tab\}\par
+\tab\tab\}\par
+\par
+\lang13322\f2 ---------------------------------\par
+\par
+\cf1\f1 private\cf3  \cf1 void\cf3  RegisterWithServer()\par
+\tab\tab\{\par
+\tab\tab\tab\cf1 try\cf3  \par
+\tab\tab\tab\{\par
+\tab\tab\tab\tab\cf1 string\cf3  command = \cf4 "CONN|"\cf3  + textBoxName.Text;\par
+\tab\tab\tab\tab\cf5 Byte\cf3 [] outbytes = System.Text.\cf5 Encoding\cf3 .ASCII.GetBytes(command.ToCharArray());\par
+\tab\tab\tab\tab ns.Write(outbytes,0,outbytes.Length);\par
+\tab\tab\tab\tab\par
+\tab\tab\tab\tab\cf1 string\cf3  serverresponse = sr.ReadLine();\par
+\tab\tab\tab\tab serverresponse.Trim();\par
+\tab\tab\tab\tab\cf1 string\cf3 [] tokens = serverresponse.Split(\cf1 new\cf3  \cf5 Char\cf3 []\{\cf4 '|'\cf3\});\par
+\tab\tab\tab\tab\cf1 if\cf3 (tokens[0] == \cf4 "LIST"\cf3 )\par
+\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab statusBar1.Text = \cf4 "Conectado"\cf3 ;\par
+\tab\tab\tab\tab\tab btnDisconnect.Enabled = \cf1 true\cf3 ;\par
+\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\cf1 for\cf3 (\cf1 int\cf3  n=1; n<tokens.Length-1; n++)\par
+\tab\tab\tab\tab\tab lbChatters.Items.Add(tokens[n].Trim(\cf1 new\cf3  \cf1 char\cf3 []\{\cf4 '\\r'\cf3 ,\cf4 '\\n'\cf3\}));\par
+\tab\tab\tab\tab\cf1 this\cf3 .Text = clientname + \cf4 ": Conectado al servidor"\cf3 ;\par
+\tab\tab\tab\tab\par
+\tab\tab\tab\}\par
+\tab\tab\tab\cf1 catch\cf3  (\cf5 Exception\cf3  e)\par
+\tab\tab\tab\{\par
+\tab\tab\tab\tab\cf5 MessageBox\cf3 .Show(\cf4 "Error al registrar"\cf3 ,\cf4 "Error"\cf3 ,\par
+\tab\tab\tab\tab\tab\cf5 MessageBoxButtons\cf3 .OK, \cf5 MessageBoxIcon\cf3 .Exclamation);\par
+\tab\tab\tab\}\par
+\tab\tab\}\par
+\f2 --------------------------------------------------------\f1\par
+\cf1 private\cf3  \cf1 void\cf3  StartListening()\par
+\tab\tab\{\par
+\tab\tab\tab listener = \cf1 new\cf3  \cf5 TcpListener\cf3 (listenport);\par
+\tab\tab\tab listener.Start();\par
+\tab\tab\tab\cf1 while\cf3  (\cf1 true\cf3 ) \{\par
+\tab\tab\tab\tab\cf1 try\cf3\par
+\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab\cf5 Socket\cf3  s = listener.AcceptSocket();\par
+\tab\tab\tab\tab\tab clientsocket = s;\par
+\tab\tab\tab\tab\tab clientservice = \cf1 new\cf3  \cf5 Thread\cf3 (\cf1 new\cf3  \cf5 ThreadStart\cf3 (ServiceClient));\par
+\tab\tab\tab\tab\tab clientservice.Start();\par
+\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\cf1 catch\cf3 (\cf5 Exception\cf3  e)\par
+\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab\cf5 Console\cf3 .WriteLine(e.ToString() );\par
+\tab\tab\tab\tab\}\par
+\tab\tab\tab\}\par
+\tab\tab\tab\par
+\tab\tab\}\par
+\par
+\par
+Este hilo sigue siempre a escuchar a los clientes. Cuando se recibe una solicitud de conexi\f2\'f3n, el servidor inicia un hilo llamado ServiceClient () para servicio que el cliente. Tenga en cuenta que cuando se establece una toma de corriente, se hace una copia de la toma de corriente. Esto es necesario para cada cliente tiene su propio enchufe.\par
+\par
+\par
+---\par
+\par
+ CONN establece un nuevo cliente, env\'eda una lista de usuarios del chat actual, y notifica a los dem\'e1s usuarios a una nueva persona se ha unido al grupo. CHAT simplemente reenv\'eda el chat entrante a todos los destinatarios. PRIV env\'eda un mensaje privado a la persona designada. IDO elimina una cuenta charla activa y notifique a todos los dem\'e1s miembros de la charla ha dejado. IDO tambi\'e9n causar\'e1 la muerte de la rosca servicio clientes estableciendo el keepalive bool false. Esta es la manera m\'e1s limpia para matar al hilo, sin embargo el ChatServer puede matar el hilo en s\'ed si detecta la conexi\'f3n se termina. \par
+\par
+El servidor recibe los mensajes entrantes como cadenas ASCII. El '|' Char se utiliza como separador entre las partes del mensaje. Un mensaje consiste en un comando, y uno o m\'e1s de otros par\'e1metros necesarios para procesar el mensaje. \par
+\par
+\par
+\par
+\par
+----------------\par
+-----------\par
+--------------------\par
+\par
+\par
+El ChatClient permite a los usuarios iniciar sesi\'f3n en el chat y enviar y recibir mensajes. Si se inicia el ChatClient sin ning\'fan par\'e1metro de l\'ednea de comandos, asume la ChatServer es en el host local. Si no es as\'ed, debe proporcionar una direcci\'f3n IP para el ChatServer en la l\'ednea de comandos. Despu\'e9s de la puesta en marcha, poner su nombre de chat en el cuadro de entrada de chat y haga clic en Conectar. El ChatServer responder\'e1 con una lista de usuarios del chat de corriente que ChatClient pone en un ListBox. Despu\'e9s de que usted puede enviar mensajes escribiendo en la l\'ednea de env\'edo y hacer clic en Enviar. Si desea enviar un mensaje privado, haga clic privada y seleccione un nombre de la ListBox. S\'f3lo un nombre se puede seleccionar a la vez. A continuaci\'f3n, env\'ede el mensaje. El receptor recibir\'e1 el mensaje con un "privado de" cadena antepuesto a la misma. \par
+\par
+Cuando el cliente intenta conectarse, se establece una conexi\'f3n y se registra con el ChatServer. EstablishConnection () utiliza un TcpClient para conectarse a la ChatServer. Un NetworkStream se establece que se utilizar\'e1 para enviar mensajes. Una vez m\'e1s el puerto ChatServer est\'e1 codificado para 5555. \par
+\par
+----\par
+\par
+Despu\'e9s de la ChatClient ha conectado, se genera un ReceiveChat () hilo para manejar todos los pormenores. ReceiveChat () implementa el lado del cliente del protocolo de aplicaci\'f3n. \par
+\par
+\cf1\f1 private\cf3  \cf1 void\cf3  ReceiveChat()\par
+\tab\tab\{\par
+\tab\tab\tab\cf1 bool\cf3  keepalive = \cf1 true\cf3 ;\par
+\tab\tab\tab\cf1 while\cf3  (keepalive) \par
+\tab\tab\tab\{\par
+\tab\tab\tab\tab\cf1 try\cf3\par
+\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab\cf5 Byte\cf3 [] buffer = \cf1 new\cf3  \cf5 Byte\cf3 [2048];\par
+\tab\tab\tab\tab\tab ns.Read(buffer,0,buffer.Length);\par
+\tab\tab\tab\tab\tab\cf1 string\cf3  chatter = System.Text.\cf5 Encoding\cf3 .ASCII.GetString(buffer);\par
+\par
+\tab\tab\tab\tab\tab\cf1 string\cf3 [] tokens = chatter.Split(\cf1 new\cf3  \cf5 Char\cf3 []\{\cf4 '|'\cf3\});\par
+\par
+\tab\tab\tab\tab\tab\cf1 if\cf3  (tokens[0] == \cf4 "CHAT"\cf3 )\par
+\tab\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab\tab rtbChatIn.AppendText(tokens[1]);\par
+\tab\tab\tab\tab\tab\tab\par
+\tab\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\tab\cf1 if\cf3  (tokens[0] == \cf4 "PRIV"\cf3 )\par
+                    \{\par
+                        \par
+\tab\tab\tab\tab\tab\tab rtbChatPrivate.AppendText(tokens[1].Trim() );\par
+                        rtbChatPrivate.AppendText(tokens[2] + \cf4 "\\r\\n"\cf3 );\par
+\tab\tab\tab\tab\tab\tab\par
+\tab\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\tab\cf1 if\cf3  (tokens[0] == \cf4 "JOIN"\cf3 )\par
+\tab\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab\tab rtbChatIn.AppendText(tokens[1].Trim() );\par
+\tab\tab\tab\tab\tab\tab rtbChatIn.AppendText(\cf4 " a ingresado al Chat\\r\\n"\cf3 );\par
+\tab\tab\tab\tab\tab\tab\cf1 string\cf3  newguy = tokens[1].Trim(\cf1 new\cf3  \cf1 char\cf3 []\{\cf4 '\\r'\cf3 ,\cf4 '\\n'\cf3\});\par
+\tab\tab\tab\tab\tab\tab lbChatters.Items.Add(newguy);\par
+\tab\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\tab\cf1 if\cf3  (tokens[0] == \cf4 "GONE"\cf3 )\par
+\tab\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab\tab rtbChatIn.AppendText(tokens[1].Trim() );\par
+\tab\tab\tab\tab\tab\tab rtbChatIn.AppendText(\cf4 " a salido del Chat\\r\\n"\cf3 );\par
+\tab\tab\tab\tab\tab\tab lbChatters.Items.Remove(tokens[1].Trim(\cf1 new\cf3  \cf1 char\cf3 []\{\cf4 '\\r'\cf3 ,\cf4 '\\n'\cf3\}));\par
+\tab\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\tab\cf1 if\cf3  (tokens[0] == \cf4 "QUIT"\cf3 )\par
+\tab\tab\tab\tab\tab\{\par
+\tab\tab\tab\tab\tab\tab ns.Close();\par
+\tab\tab\tab\tab\tab\tab clientsocket.Close();\par
+\tab\tab\tab\tab\tab\tab keepalive = \cf1 false\cf3 ;\par
+\tab\tab\tab\tab\tab\tab statusBar1.Text = \cf4 "Servidor fue detenido"\cf3 ;\par
+\tab\tab\tab\tab\tab\tab connected= \cf1 false\cf3 ;\par
+\tab\tab\tab\tab\tab\tab btnSend.Enabled = \cf1 false\cf3 ;\par
+\tab\tab\tab\tab\tab\tab btnDisconnect.Enabled = \cf1 false\cf3 ;\par
+\tab\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\cf1 catch\cf3 (\cf5 Exception\cf3  e)\{\}\par
+\tab\tab\tab\}\par
+\tab\tab\}\f2\tab\tab\par
+\par
+\par
+\par
+\par
+\par
+\par
+-----------------------------------------\par
+\par
+\cf1\f1 private\cf3  \cf1 void\cf3  btnSend_Click(\cf1 object\cf3  sender, System.\cf5 EventArgs\cf3  e)\par
+\tab\tab\{\par
+\tab\tab\tab\cf1 try\cf3\{\par
+\tab\tab\tab\tab\cf1 string\cf3  dclient = \cf4 ""\cf3 ;\par
+\tab\tab\tab\tab\cf1 if\cf3 (!privatemode)\{\par
+\tab\tab\tab\tab\tab\cf1 string\cf3  pubcommand = \cf4 "CHAT|"\cf3  + clientname +\cf4 ": "\cf3 +ChatOut.Text + \cf4 "\\r\\n"\cf3 ;\par
+\tab\tab\tab\tab\tab\cf5 Byte\cf3 [] outbytes = System.Text.\cf5 Encoding\cf3 .ASCII.GetBytes(pubcommand.ToCharArray());\par
+\tab\tab\tab\tab\tab ns.Write(outbytes,0,outbytes.Length);\par
+\tab\tab\tab\tab\tab ChatOut.Text = \cf4 ""\cf3 ;\par
+\tab\tab\tab\tab\}\par
+\tab\tab\tab\tab\cf1 else\cf3\{\par
+\tab\tab\tab\tab\tab\cf1 if\cf3 (lbChatters.SelectedIndex == -1)\{\par
+\tab\tab\tab\tab\tab\tab\cf5 MessageBox\cf3 .Show(\cf4 "Selecciona a un usuario de la lista"\cf3 ,\cf4 "Error"\cf3 ,\par
+\tab\tab\tab\tab\tab\tab\tab\cf5 MessageBoxButtons\cf3 .OK, \cf5 MessageBoxIcon\cf3 .Exclamation);\par
+\tab\tab\tab\tab\tab\tab\cf1 return\cf3 ;\par
+\tab\tab\tab\tab\tab\}\par
+\par
+\tab\tab\tab\tab\tab\cf1 string\cf3  destclient = lbChatters.SelectedItem.ToString();\par
+\tab\tab\tab\tab\tab\cf1 string\cf3  command = \cf4 "PRIV|"\cf3  + clientname + \cf4 "|: "\cf3  + ChatOut.Text + \cf4 "|"\cf3  + destclient;\par
+\tab\tab\tab\tab\tab\cf5 Byte\cf3 [] outbytes = System.Text.\cf5 Encoding\cf3 .ASCII.GetBytes(command.ToCharArray());\par
+\tab\tab\tab\tab\tab ns.Write(outbytes,0,outbytes.Length);\par
+                    ChatOut.Text = \cf4 ""\cf3 ;\par
+\tab\tab\tab\tab\}\par
+\par
+\tab\tab\tab\}\cf0\highlight0\lang10\f0\fs22\par
+}
+ 
